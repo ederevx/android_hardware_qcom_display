@@ -161,15 +161,21 @@ DisplayError DisplayBuiltIn::Init() {
   Debug::Get()->GetProperty(DEFER_FPS_FRAME_COUNT, &value);
   deferred_config_.frame_count = (value > 0) ? UINT32(value) : 0;
 
-error = CreatePanelfeatures();
-  if (error != kErrorNone) {
-    DLOGE("Failed to setup panel feature factory, error: %d", error);
-  } else {
+  error = CreatePanelfeatures();
+  if (error == kErrorNone) {
     // Get status of RC enablement property. Default RC is disabled.
     int rc_prop_value = 0;
     Debug::GetProperty(ENABLE_ROUNDED_CORNER, &rc_prop_value);
     rc_enable_prop_ = rc_prop_value ? true : false;
     DLOGI("RC feature %s.", rc_enable_prop_ ? "enabled" : "disabled");
+  } else {
+    DLOGE("Failed to setup panel feature factory, error: %d", error);
+    // Panel features need the extension library, which not every vendor image
+    // ships; only the features may be missing, not the display itself.
+    if (error != kErrorNotSupported) {
+      return error;
+    }
+    error = kErrorNone;
   }
   value = 0;
   DebugHandler::Get()->GetProperty(DISABLE_DYNAMIC_FPS, &value);
